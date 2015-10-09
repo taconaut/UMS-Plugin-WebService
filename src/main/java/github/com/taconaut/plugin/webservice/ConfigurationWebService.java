@@ -14,8 +14,11 @@ import org.apache.commons.configuration.ConfigurationException;
 import net.pms.PMS;
 import net.pms.configuration.PmsConfiguration;
 
+/**
+ * Exposes methods to get and set UMS configuration values.
+ */
 @WebService(serviceName = "Configure", targetNamespace = "http://universalmediaserver.com/configure")
-public class ConfigurationWebService extends ServiceBase {
+public class ConfigurationWebService extends WebServiceBase {
 	private static final PmsConfiguration CONFIG = PMS.getConfiguration();
 
 	@WebMethod()

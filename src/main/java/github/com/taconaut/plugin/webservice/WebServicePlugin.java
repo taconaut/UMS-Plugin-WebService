@@ -11,10 +11,10 @@ import net.pms.external.ExternalListener;
 import net.pms.network.NetworkConfiguration;
 
 public class WebServicePlugin implements ExternalListener {
-	private static final Logger log = LoggerFactory.getLogger(WebServicePlugin.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(WebServicePlugin.class);
 
 	private ConfigurationWebService configurationWs;
-	private String configurationWsName = "UmsConfiguration";
+	private String configurationWsName = "Configuration";
 
 	private FileSystemWebService fileSystemWs;
 	private String fileSystemWsName = "FileSystem";
@@ -24,27 +24,22 @@ public class WebServicePlugin implements ExternalListener {
 
 	public WebServicePlugin() {
 		// Disable logging of stack traces when throwing exceptions through the web services
-		System.setProperty(
-				"com.sun.xml.internal.ws.fault.SOAPFaultBuilder.disableCaptureStackTrace",
-				"false");
+		System.setProperty("com.sun.xml.internal.ws.fault.SOAPFaultBuilder.disableCaptureStackTrace", "false");
 
 		hostName = getHostName();
 
-		// check if the port has been overridden in the config
-		Object tmpPort = PMS.getConfiguration().getCustomProperty("ConfigurationWS_Port");
-		if (tmpPort instanceof Integer) {
-			port = (Integer) tmpPort;
-		}
-
-		Object portProp = PMS.getConfiguration().getCustomProperty("WebServicePluginPort");
-		if (portProp != null && portProp instanceof String) {
+		// check if the port has been overridden in the configuration
+		Object portProperty = PMS.getConfiguration().getCustomProperty("WebServicePluginPort");
+		if (portProperty != null && portProperty instanceof String) {
 			try {
-				port = Integer.parseInt((String) portProp);
+				port = Integer.parseInt((String) portProperty);
+				LOGGER.info(String.format("Using port=%s configured in the UMS configuration", port));
 			} catch (NumberFormatException ex) {
-				log.error(String.format("Found configured port but failed to parse '%s'. Using default port %s", portProp, port));
+				LOGGER.error(String.format("Found configured port but failed to parse '%s'. Using default port %s", portProperty, port));
 			}
 		}
 
+		// Instantiate and bind the web services
 		configurationWs = new ConfigurationWebService();
 		configurationWs.bind(hostName, port, configurationWsName);
 
@@ -57,9 +52,10 @@ public class WebServicePlugin implements ExternalListener {
 	}
 
 	public JComponent config() {
-		String configEndPoint = "http://" + hostName + ":" + port + "/" + configurationWsName + "?wsdl";
-		String fileSystemEndPoint = "http://" + hostName + ":" + port + "/" + fileSystemWsName + "?wsdl";
-		return new JLabel(String.format("<html>This plugin exposes web services and can't be configured.<br><br>%s<br>%s</html>", configEndPoint, fileSystemEndPoint));
+		String configurationWsEndPoint = String.format("http://%s:%s/%s?wsdl", hostName, port, configurationWsName);
+		String fileSystemWsEndPoint = String.format("http://%s:%s/%s?wsdl", hostName, port, fileSystemWsName);
+
+		return new JLabel(String.format("<html>This plugin exposes web services.<br>The web service port can be configured by adding e.g. 'WebServicePluginPort=1234' in your UMS.conf file.<br><br>%s<br>%s</html>", configurationWsEndPoint, fileSystemWsEndPoint));
 	}
 
 	public String name() {
@@ -68,5 +64,6 @@ public class WebServicePlugin implements ExternalListener {
 
 	public void shutdown() {
 		configurationWs.shutdown();
+		fileSystemWs.shutdown();
 	}
 }
